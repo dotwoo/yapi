@@ -1,0 +1,55 @@
+version: "3"
+services:
+  mongo:
+    image: mongo
+    container_name: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    environment:
+      - TZ=Asia/Shanghai
+      - MONGO_INITDB_DATABASE=yapi
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=123456
+    volumes:
+      - ./docker-data/mongo:/data/db
+      - type: bind
+        source: ./init-mongo.js
+        target: /docker-entrypoint-initdb.d/init-mongo.js
+        read_only: true
+    networks:
+      yapi_net:
+        ipv4_address: 172.22.1.11
+
+  # yapi
+  yapi-app:
+    image: yapipro/yapi:latest
+    container_name: yapi-app
+    restart: always
+    ports:
+      - 3000:3000
+    #  init
+    # command: server/install.js
+
+    # run server
+    command: server/app.js
+    environment:
+      - TZ=Asia/Shanghai
+      # - NODE_ENV=production
+    depends_on:
+      - mongo
+    volumes:
+      - type: bind
+        source: ./config.json
+        target: /yapi/config.json
+        read_only: true
+    networks:
+      yapi_net:
+        ipv4_address: 172.22.1.12
+
+networks:
+  yapi_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.1.0/16
